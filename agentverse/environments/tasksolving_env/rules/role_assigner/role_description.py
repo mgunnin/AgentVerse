@@ -26,7 +26,7 @@ class DescriptionAssigner(BaseRoleAssigner):
         **kwargs,
     ) -> List[CriticAgent]:
         assert task_description != ""
-        assert len(group_members) > 0
+        assert group_members
 
         roles = role_assigner.step(advice, task_description, len(group_members))
         if len(roles.content) < len(group_members):
@@ -60,14 +60,12 @@ class DescriptionNameAssigner(BaseRoleAssigner):
         **kwargs,
     ) -> List[CriticAgent]:
         assert task_description != ""
-        assert len(group_members) > 0
+        assert group_members
 
         # roles: [{'name': 'xxx', 'description': 'xxx'}, ...]
         roles = role_assigner.step(advice, task_description, len(group_members))
 
-        if len(group_members) < 2:
-            pass
-        else:
+        if len(group_members) >= 2:
             if len(roles.content) != len(group_members):
                 raise ValueError(
                     f"Number of roles ({len(roles.content)}) and number of group members ({len(group_members)}) do not match."

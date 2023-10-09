@@ -97,7 +97,7 @@ class OpenAIChat(BaseChatModel):
 
         for k, v in args.items():
             args[k] = kwargs.pop(k, v)
-        if len(kwargs) > 0:
+        if kwargs:
             logging.warning(f"Unused arguments: {kwargs}")
         super().__init__(args=args, max_retry=max_retry)
 
@@ -121,15 +121,28 @@ class OpenAIChat(BaseChatModel):
 
         try:
             # Execute function call
-            if functions != []:
+            if not functions:
+                response = openai.ChatCompletion.create(
+                    messages=messages,
+                    **self.args.dict(),
+                )
+                return LLMResult(
+                    content=response["choices"][0]["message"]["content"],
+                    send_tokens=response["usage"]["prompt_tokens"],
+                    recv_tokens=response["usage"]["completion_tokens"],
+                    total_tokens=response["usage"]["total_tokens"],
+                )
+            else:
                 response = openai.ChatCompletion.create(
                     messages=messages,
                     functions=functions,
                     **self.args.dict(),
                 )
-                if response["choices"][0]["message"].get("function_call") is not None:
-                    return LLMResult(
-                        content=response["choices"][0]["message"].get("content", ""),
+                return (
+                    LLMResult(
+                        content=response["choices"][0]["message"].get(
+                            "content", ""
+                        ),
                         function_name=response["choices"][0]["message"][
                             "function_call"
                         ]["name"],
@@ -142,24 +155,14 @@ class OpenAIChat(BaseChatModel):
                         recv_tokens=response["usage"]["completion_tokens"],
                         total_tokens=response["usage"]["total_tokens"],
                     )
-                else:
-                    return LLMResult(
+                    if response["choices"][0]["message"].get("function_call")
+                    is not None
+                    else LLMResult(
                         content=response["choices"][0]["message"]["content"],
                         send_tokens=response["usage"]["prompt_tokens"],
                         recv_tokens=response["usage"]["completion_tokens"],
                         total_tokens=response["usage"]["total_tokens"],
                     )
-
-            else:
-                response = openai.ChatCompletion.create(
-                    messages=messages,
-                    **self.args.dict(),
-                )
-                return LLMResult(
-                    content=response["choices"][0]["message"]["content"],
-                    send_tokens=response["usage"]["prompt_tokens"],
-                    recv_tokens=response["usage"]["completion_tokens"],
-                    total_tokens=response["usage"]["total_tokens"],
                 )
         except (OpenAIError, KeyboardInterrupt, json.decoder.JSONDecodeError) as error:
             raise
@@ -180,73 +183,7 @@ class OpenAIChat(BaseChatModel):
         logger.log_prompt(messages)
 
         try:
-            if functions != []:
-                async with ClientSession(trust_env=True) as session:
-                    openai.aiosession.set(session)
-                    response = await openai.ChatCompletion.acreate(
-                        messages=messages,
-                        functions=functions,
-                        **self.args.dict(),
-                    )
-                if response["choices"][0]["message"].get("function_call") is not None:
-                    function_name = response["choices"][0]["message"]["function_call"][
-                        "name"
-                    ]
-                    valid_function = False
-                    if function_name.startswith("function."):
-                        function_name = function_name.replace("function.", "")
-                    elif function_name.startswith("functions."):
-                        function_name = function_name.replace("functions.", "")
-                    for function in functions:
-                        if function["name"] == function_name:
-                            valid_function = True
-                            break
-                    if not valid_function:
-                        logger.warn(
-                            f"The returned function name {function_name} is not in the list of valid functions. Retrying..."
-                        )
-                        raise ValueError(
-                            f"The returned function name {function_name} is not in the list of valid functions."
-                        )
-                    try:
-                        arguments = ast.literal_eval(
-                            response["choices"][0]["message"]["function_call"][
-                                "arguments"
-                            ]
-                        )
-                    except:
-                        try:
-                            arguments = ast.literal_eval(
-                                JsonRepair(
-                                    response["choices"][0]["message"]["function_call"][
-                                        "arguments"
-                                    ]
-                                ).repair()
-                            )
-                        except:
-                            logger.warn(
-                                "The returned argument in function call is not valid json. Retrying..."
-                            )
-                            raise ValueError(
-                                "The returned argument in function call is not valid json."
-                            )
-                    return LLMResult(
-                        function_name=function_name,
-                        function_arguments=arguments,
-                        send_tokens=response["usage"]["prompt_tokens"],
-                        recv_tokens=response["usage"]["completion_tokens"],
-                        total_tokens=response["usage"]["total_tokens"],
-                    )
-
-                else:
-                    return LLMResult(
-                        content=response["choices"][0]["message"]["content"],
-                        send_tokens=response["usage"]["prompt_tokens"],
-                        recv_tokens=response["usage"]["completion_tokens"],
-                        total_tokens=response["usage"]["total_tokens"],
-                    )
-
-            else:
+            if not functions:
                 async with ClientSession(trust_env=True) as session:
                     openai.aiosession.set(session)
                     response = await openai.ChatCompletion.acreate(
@@ -259,6 +196,69 @@ class OpenAIChat(BaseChatModel):
                     recv_tokens=response["usage"]["completion_tokens"],
                     total_tokens=response["usage"]["total_tokens"],
                 )
+            else:
+                async with ClientSession(trust_env=True) as session:
+                    openai.aiosession.set(session)
+                    response = await openai.ChatCompletion.acreate(
+                        messages=messages,
+                        functions=functions,
+                        **self.args.dict(),
+                    )
+                if response["choices"][0]["message"].get("function_call") is None:
+                    return LLMResult(
+                        content=response["choices"][0]["message"]["content"],
+                        send_tokens=response["usage"]["prompt_tokens"],
+                        recv_tokens=response["usage"]["completion_tokens"],
+                        total_tokens=response["usage"]["total_tokens"],
+                    )
+
+                function_name = response["choices"][0]["message"]["function_call"][
+                    "name"
+                ]
+                if function_name.startswith("function."):
+                    function_name = function_name.replace("function.", "")
+                elif function_name.startswith("functions."):
+                    function_name = function_name.replace("functions.", "")
+                valid_function = any(
+                    function["name"] == function_name for function in functions
+                )
+                if not valid_function:
+                    logger.warn(
+                        f"The returned function name {function_name} is not in the list of valid functions. Retrying..."
+                    )
+                    raise ValueError(
+                        f"The returned function name {function_name} is not in the list of valid functions."
+                    )
+                try:
+                    arguments = ast.literal_eval(
+                        response["choices"][0]["message"]["function_call"][
+                            "arguments"
+                        ]
+                    )
+                except:
+                    try:
+                        arguments = ast.literal_eval(
+                            JsonRepair(
+                                response["choices"][0]["message"]["function_call"][
+                                    "arguments"
+                                ]
+                            ).repair()
+                        )
+                    except:
+                        logger.warn(
+                            "The returned argument in function call is not valid json. Retrying..."
+                        )
+                        raise ValueError(
+                            "The returned argument in function call is not valid json."
+                        )
+                return LLMResult(
+                    function_name=function_name,
+                    function_arguments=arguments,
+                    send_tokens=response["usage"]["prompt_tokens"],
+                    recv_tokens=response["usage"]["completion_tokens"],
+                    total_tokens=response["usage"]["total_tokens"],
+                )
+
         except (OpenAIError, KeyboardInterrupt, json.decoder.JSONDecodeError) as error:
             raise
 
@@ -268,7 +268,7 @@ class OpenAIChat(BaseChatModel):
         messages = []
         if prepend_prompt != "":
             messages.append({"role": "system", "content": prepend_prompt})
-        if len(history) > 0:
+        if history:
             messages += history
         if append_prompt != "":
             messages.append({"role": "user", "content": append_prompt})

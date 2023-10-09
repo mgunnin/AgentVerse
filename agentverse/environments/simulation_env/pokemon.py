@@ -53,12 +53,11 @@ class PokemonEnvironment(BaseEnvironment):
             updater_config,
             describer_config,
         )
-        locations_to_agents = {}
         # locations_descriptions = {}
         locations_config = locations
-        for loc in locations_config:
-            locations_to_agents[loc["name"]] = set(loc["init_agents"])
-            # locations_descriptions[loc["name"]] = loc["description"]
+        locations_to_agents = {
+            loc["name"]: set(loc["init_agents"]) for loc in locations_config
+        }
         super().__init__(
             rule=rule,
             locations_to_agents=locations_to_agents,
@@ -181,7 +180,7 @@ class PokemonEnvironment(BaseEnvironment):
         return self.cnt_turn >= self.max_turns
 
     def get_test_messages(self) -> List[Message]:
-        messages = [
+        return [
             Message(
                 content='{"to": "Birch", "action": "Speak", "text": "Hi!!!"}',
                 sender="May",
@@ -219,4 +218,3 @@ class PokemonEnvironment(BaseEnvironment):
                 tool_response=[],
             ),
         ]
-        return messages

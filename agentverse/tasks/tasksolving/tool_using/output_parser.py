@@ -26,10 +26,7 @@ class RoleAssignerParser(OutputParser):
                 f"Role assigner failed to assign roles to {self.cnt_critic_agents} critics!"
             )
             raise OutputParserError(text)
-        res = []
-        for role in roles:
-            res.append({"name": role[0], "description": role[1]})
-        return res
+        return [{"name": role[0], "description": role[1]} for role in roles]
 
 
 @output_parser_registry.register("tool-using-solver")

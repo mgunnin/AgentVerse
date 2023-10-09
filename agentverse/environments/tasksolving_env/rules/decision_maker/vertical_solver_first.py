@@ -41,7 +41,7 @@ class VerticalSolverFirstDecisionMaker(BaseDecisionMaker):
         previous_plan = agents[0].step(previous_plan, advice, task_description)
         self.broadcast_messages(agents, [previous_plan])
         logger.info("", f"Initial Plan:\n{previous_plan.content}", Fore.BLUE)
-        for i in range(self.max_inner_turns):
+        for _ in range(self.max_inner_turns):
             reviews: List[CriticMessage] = await asyncio.gather(
                 *[
                     agent.astep(previous_plan, advice, task_description)
@@ -57,11 +57,12 @@ class VerticalSolverFirstDecisionMaker(BaseDecisionMaker):
                 Fore.YELLOW,
             )
 
-            nonempty_reviews = []
-            for review in reviews:
-                if not review.is_agree and review.content != "":
-                    nonempty_reviews.append(review)
-            if len(nonempty_reviews) == 0:
+            nonempty_reviews = [
+                review
+                for review in reviews
+                if not review.is_agree and review.content != ""
+            ]
+            if not nonempty_reviews:
                 logger.info("", "Consensus Reached!.", Fore.GREEN)
                 break
             self.broadcast_messages(agents, nonempty_reviews)

@@ -36,11 +36,10 @@ for i in range(2):
             label = str(line["label"])
             if i == 0:
                 response = line["response"]
+            elif line["logs"][0]["module"] == "Role Assigner":
+                response = line["logs"][1]["content"]
             else:
-                if line["logs"][0]["module"] == "Role Assigner":
-                    response = line["logs"][1]["content"]
-                else:
-                    response = line["logs"][0]["content"]
+                response = line["logs"][0]["content"]
             total += 1
             result = re.findall(r"\\boxed\{(.+?)\}", response)
             if len(result) == 0:

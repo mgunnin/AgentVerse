@@ -76,17 +76,12 @@ def write_eval_to_file(file, skip=0):
             res.append("unknown")
 
 
+win_cnt = 0
 if not os.path.exists("./eval.md"):
     with open("./eval.md", "w") as f:
         f.write("# ResponseGen Eval\n\n")
         write_eval_to_file(f)
-    win_cnt = 0
-    for r in res:
-        if r == "A":
-            win_cnt += 1
-    print(f"win rate: {win_cnt / len(res)}")
 else:
-    win_cnt = 0
     total_cnt = 0
     with open("./eval.md", "r") as f:
         for line in f:
@@ -106,7 +101,8 @@ else:
         f.write("\n")
         write_eval_to_file(f, total_cnt)
     win_cnt = 0
-    for r in res:
-        if r == "A":
-            win_cnt += 1
-    print(f"win rate: {win_cnt / len(res)}")
+
+for r in res:
+    if r == "A":
+        win_cnt += 1
+print(f"win rate: {win_cnt / len(res)}")

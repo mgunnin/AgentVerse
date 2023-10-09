@@ -78,13 +78,13 @@ class ToolUsingExecutor(BaseExecutor):
     ):
         plan_this_turn = {}
         agent_name_this_turn = []
-        for i in range(len(plans)):
-            name = plans[i].content.split("-")[0].strip()
+        for plan in plans:
+            name = plan.content.split("-")[0].strip()
             if name not in self.real_execution_agents:
                 self.real_execution_agents[name] = deepcopy(agent)
                 self.real_execution_agents[name].name = name
                 self.agent_names.append(name)
-            plan_this_turn[name] = plans[i].content.split("-")[1].strip()
+            plan_this_turn[name] = plan.content.split("-")[1].strip()
             agent_name_this_turn.append(name)
         # agents = [deepcopy(agent) for _ in range(len(plans))]
 
@@ -172,16 +172,14 @@ class ToolUsingExecutor(BaseExecutor):
                     result[name] = observation.content
             self.update_cookies(cookies)
 
-        message_result = []
-        for name, conclusion in result.items():
-            if conclusion != "":
-                message_result.append(
-                    ExecutorMessage(
-                        content=f"[{name}]: My execution result:\n{conclusion}",
-                        sender=name,
-                    )
-                )
-        return message_result
+        return [
+            ExecutorMessage(
+                content=f"[{name}]: My execution result:\n{conclusion}",
+                sender=name,
+            )
+            for name, conclusion in result.items()
+            if conclusion != ""
+        ]
 
     def update_cookies(self, cookies: dict):
         for name, cookie in cookies.items():
@@ -206,7 +204,7 @@ class ToolUsingExecutor(BaseExecutor):
                 retrieved_tools = await response.json()
                 retrieved_tools = ast.literal_eval(retrieved_tools)
         tools = deepcopy(curr_tools)
-        existed_tool_names = set([t["name"] for t in tools])
+        existed_tool_names = {t["name"] for t in tools}
         # Add the retrieved tools into the final tools
         for tool in retrieved_tools["tools_json"]:
             if tool["name"] not in existed_tool_names:
@@ -241,10 +239,10 @@ class ToolUsingExecutor(BaseExecutor):
                 "is_finish": True,
                 "cookies": cookies,
             }
-        if command == "":
+        if not command:
             return {
                 "observation": ExecutorMessage(
-                    content=f"The function calling format is incorrect.",
+                    content="The function calling format is incorrect.",
                     sender="function",
                     tool_name=command,
                     tool_input=arguments,
@@ -302,7 +300,7 @@ class ToolUsingExecutor(BaseExecutor):
                 break
             except Exception as e:
                 message = ExecutorMessage(
-                    content="Failed to call the tool. Exception: " + str(e),
+                    content=f"Failed to call the tool. Exception: {str(e)}",
                     sender="function",
                     tool_name=command,
                     tool_input=arguments,

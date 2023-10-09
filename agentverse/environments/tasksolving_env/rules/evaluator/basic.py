@@ -27,13 +27,12 @@ class BasicEvaluator(BaseEvaluator):
         flatten_solution = "\n".join([s.content for s in solution])
         flatten_result = "\n".join([r.content for r in result])
         flatten_all_role_description = "\n".join(all_role_description)
-        evaluation = agent.step(
+        return agent.step(
             flatten_solution,
             flatten_result,
             task_description,
             flatten_all_role_description,
         )
-        return evaluation
 
 
 @evaluator_registry.register("basic-message")

@@ -46,8 +46,6 @@ class BasicEnvironment(BaseEnvironment):
         self, advice: str = "No advice yet.", previous_plan: str = "No solution yet."
     ) -> List[Message]:
         result = ""
-        logs = []
-
         logger.info(f"Loop Round {self.cnt_turn}")
 
         # ================== EXPERT RECRUITMENT ==================
@@ -55,7 +53,6 @@ class BasicEnvironment(BaseEnvironment):
             self.task_description, self.agents, self.cnt_turn, advice
         )
         description = "\n".join([agent.role_description for agent in agents])
-        logs.append({"module": "Role Assigner", "content": description})
         logger.info("", f"Role Assignment:\n{description}", Fore.CYAN)
         # ================== EXPERT RECRUITMENT ==================
 
@@ -64,7 +61,6 @@ class BasicEnvironment(BaseEnvironment):
             self.task_description, self.agents, previous_plan, advice
         )
         flatten_plan = "\n".join([p.content for p in plan])
-        logs.append({"module": "Decision Maker", "content": flatten_plan})
         logger.info("", f"Decision Plan:\n{flatten_plan}", Fore.YELLOW)
         # ================== DECISION MAKING ==================
 
@@ -73,8 +69,7 @@ class BasicEnvironment(BaseEnvironment):
             self.task_description, self.agents, plan
         )
         flatten_result = "\n".join([r.content for r in result])
-        logs.append({"module": "Executor", "content": flatten_result})
-        logger.info("", f"Execution Result:", Fore.GREEN)
+        logger.info("", "Execution Result:", Fore.GREEN)
         logger.info("", flatten_result, Fore.GREEN)
         # ================== EXECUTION ==================
 
@@ -82,19 +77,23 @@ class BasicEnvironment(BaseEnvironment):
         score, advice = self.rule.evaluate(
             self.task_description, self.agents, plan, result
         )
-        logs.append(
+        logs = [
+            {"module": "Role Assigner", "content": description},
+            {"module": "Decision Maker", "content": flatten_plan},
+            {"module": "Executor", "content": flatten_result},
             {
                 "agent": "evaluator",
                 "content": f"Evaluation result: Score: {score}\nAdvice: {advice}",
-            }
-        )
+            },
+        ]
         logger.info(
             "", f"Evaluation result:\nScore: {score}\nAdvice: {advice}", Fore.YELLOW
         )
 
         if score is not None and (
             (isinstance(score, bool) and score is True)
-            or (isinstance(score, (list, tuple)) and all([s >= 8 for s in score]))
+            or isinstance(score, (list, tuple))
+            and all(s >= 8 for s in score)
         ):
             # TODO: 8 is an arbitrary threshold
             logs.append({"agent": "system", "content": "Good score! Accept!"})

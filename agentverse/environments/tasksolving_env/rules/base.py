@@ -97,25 +97,22 @@ class TasksolvingRule(BaseRule):
         previous_plan: str,
         advice: str = "No advice yet.",
     ) -> List[SolverMessage]:
-        # TODO: plan should be string or a special type of object?
-
-        # dynamic
-        if "dynamic" in self.decision_maker.name:
-            plan = await self.decision_maker.astep(
+        return (
+            await self.decision_maker.astep(
                 agents=[agents[AGENT_TYPES.SOLVER], *agents[AGENT_TYPES.CRITIC]],
                 manager=agents[AGENT_TYPES.MANAGER],
                 task_description=task_description,
                 previous_plan=previous_plan,
                 advice=advice,
             )
-        else:
-            plan = await self.decision_maker.astep(
+            if "dynamic" in self.decision_maker.name
+            else await self.decision_maker.astep(
                 agents=[agents[AGENT_TYPES.SOLVER], *agents[AGENT_TYPES.CRITIC]],
                 task_description=task_description,
                 previous_plan=previous_plan,
                 advice=advice,
             )
-        return plan
+        )
 
     async def execute(
         self,

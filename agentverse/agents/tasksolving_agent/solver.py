@@ -39,7 +39,7 @@ class SolverAgent(BaseAgent):
         )
         history = self.memory.to_messages(self.name, start_index=-self.max_history)
         parsed_response = None
-        for i in range(self.max_retry):
+        for _ in range(self.max_retry):
             try:
                 response = self.llm.generate_response(
                     prepend_prompt, history, append_prompt
@@ -51,19 +51,16 @@ class SolverAgent(BaseAgent):
             except Exception as e:
                 logger.error(e)
                 logger.warn("Retrying...")
-                continue
-
         if parsed_response is None:
             logger.error(f"{self.name} failed to generate valid response.")
 
-        message = SolverMessage(
+        return SolverMessage(
             content=""
             if parsed_response is None
             else parsed_response.return_values["output"],
             sender=self.name,
             receiver=self.get_receiver(),
         )
-        return message
 
     async def astep(self, env_description: str = "") -> SolverMessage:
         """Asynchronous version of step"""

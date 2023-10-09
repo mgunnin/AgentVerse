@@ -33,7 +33,7 @@ class ExecutorAgent(BaseAgent):
 
         history = self.memory.to_messages(self.name, start_index=-self.max_history)
         parsed_response = None
-        for i in range(self.max_retry):
+        for _ in range(self.max_retry):
             try:
                 response = self.llm.generate_response(
                     prepend_prompt, history, append_prompt, tools
@@ -45,8 +45,6 @@ class ExecutorAgent(BaseAgent):
             except Exception as e:
                 logger.error(e)
                 logger.warn("Retrying...")
-                continue
-
         if parsed_response is None:
             logger.error(f"{self.name} failed to generate valid response.")
         if isinstance(parsed_response, AgentFinish):
@@ -83,7 +81,7 @@ class ExecutorAgent(BaseAgent):
 
         history = self.memory.to_messages(self.name, start_index=-self.max_history)
         parsed_response = None
-        for i in range(self.max_retry):
+        for _ in range(self.max_retry):
             try:
                 response = await self.llm.agenerate_response(
                     prepend_prompt, history, append_prompt, tools
@@ -95,8 +93,6 @@ class ExecutorAgent(BaseAgent):
             except Exception as e:
                 logger.error(e)
                 logger.warn("Retrying...")
-                continue
-
         if parsed_response is None:
             logger.error(f"{self.name} failed to generate valid response.")
             parsed_response = AgentAction(tool="", tool_input="", log="")

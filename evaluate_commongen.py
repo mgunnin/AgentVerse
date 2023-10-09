@@ -12,9 +12,7 @@ def coverage_score(preds, concept_sets):
     missings = []
     for p, cs in tqdm(zip(preds, concept_sets), total=len(preds)):
         cs = set(cs)
-        lemmas = set()
-        for token in nlp(p):
-            lemmas.add(token.lemma_)
+        lemmas = {token.lemma_ for token in nlp(p)}
         cov = len(lemmas & cs) / len(cs)
         covs.append(cov)
         missings.append(cs - lemmas)

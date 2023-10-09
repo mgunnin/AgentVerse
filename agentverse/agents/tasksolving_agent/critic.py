@@ -74,7 +74,7 @@ class CriticAgent(BaseAgent):
         )
         history = self.memory.to_messages(self.name, start_index=-self.max_history)
         parsed_response: Union[AgentCriticism, None] = None
-        for i in range(self.max_retry):
+        for _ in range(self.max_retry):
             try:
                 response = await self.llm.agenerate_response(
                     prepend_prompt, history, append_prompt
@@ -86,18 +86,19 @@ class CriticAgent(BaseAgent):
             except Exception as e:
                 logger.error(e)
                 logger.warn("Retrying...")
-                continue
-
         if parsed_response is None:
             logger.error(f"{self.name} failed to generate valid response.")
 
-        message = CriticMessage(
-            content=parsed_response.criticism if parsed_response is not None else "",
+        return CriticMessage(
+            content=parsed_response.criticism
+            if parsed_response is not None
+            else "",
             sender=self.name,
             sender_agent=self,
-            is_agree=parsed_response.is_agree if parsed_response is not None else False,
+            is_agree=parsed_response.is_agree
+            if parsed_response is not None
+            else False,
         )
-        return message
 
     def _fill_prompt_template(
         self, preliminary_solution: str, advice: str, task_description: str

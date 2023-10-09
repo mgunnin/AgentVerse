@@ -45,20 +45,16 @@ class CodeTestExecutor(BaseExecutor):
             p = multiprocessing.Process(
                 target=execute_command, args=(f"python {response['file_path']}", result)
             )
-            p.start()
-            p.join(timeout=self.timeout + 1)
-            if p.is_alive():
-                p.kill()
-            # result = execute_command(f"python {response['file_path']}")
+                # result = execute_command(f"python {response['file_path']}")
         else:
             # result = execute_command(self.has_test[task_description])
             p = multiprocessing.Process(
                 target=execute_command, args=(self.has_test[task_description], result)
             )
-            p.start()
-            p.join(timeout=self.timeout + 1)
-            if p.is_alive():
-                p.kill()
+        p.start()
+        p.join(timeout=self.timeout + 1)
+        if p.is_alive():
+            p.kill()
         if not result:
             result.append("Execution timed out.")
         return [ExecutorMessage(content=result[0], sender="Code Tester")]
@@ -83,20 +79,16 @@ class CodeTestExecutor(BaseExecutor):
             p = multiprocessing.Process(
                 target=execute_command, args=(f"python {response['file_path']}", result)
             )
-            p.start()
-            p.join(timeout=self.timeout + 1)
-            if p.is_alive():
-                p.kill()
-            # result = execute_command(f"python {response['file_path']}")
+                # result = execute_command(f"python {response['file_path']}")
         else:
             # result = execute_command(self.has_test[task_description])
             p = multiprocessing.Process(
                 target=execute_command, args=(self.has_test[task_description], result)
             )
-            p.start()
-            p.join(timeout=self.timeout + 1)
-            if p.is_alive():
-                p.kill()
+        p.start()
+        p.join(timeout=self.timeout + 1)
+        if p.is_alive():
+            p.kill()
         if not result:
             result.append("Execution timed out.")
         return [ExecutorMessage(content=result[0], sender="Code Tester")]

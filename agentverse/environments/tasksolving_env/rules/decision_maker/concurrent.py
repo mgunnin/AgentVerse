@@ -34,7 +34,7 @@ class ConcurrentDecisionMaker(BaseDecisionMaker):
         # Here we assume that the first agent is the solver.
         # The rest of the agents are the reviewers.
         last_reviews = []
-        for i in range(self.max_inner_turns):
+        for _ in range(self.max_inner_turns):
             reviews: List[CriticMessage] = await asyncio.gather(
                 *[
                     agent.astep(previous_plan, advice, task_description)
@@ -49,12 +49,13 @@ class ConcurrentDecisionMaker(BaseDecisionMaker):
                 ),
                 Fore.YELLOW,
             )
-            nonempty_reviews = []
-            for review in reviews:
-                if not review.is_agree and review.content != "":
-                    nonempty_reviews.append(review)
+            nonempty_reviews = [
+                review
+                for review in reviews
+                if not review.is_agree and review.content != ""
+            ]
             self.broadcast_messages(agents[1:], nonempty_reviews)
-            if len(nonempty_reviews) == 0:
+            if not nonempty_reviews:
                 break
             last_reviews = nonempty_reviews
 

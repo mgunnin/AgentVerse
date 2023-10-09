@@ -83,8 +83,6 @@ class Reflection(BaseMemoryManipulator):
             return ""
 
     def get_accumulated_importance(self):
-        accumulated_importance = 0
-
         for memory in self.memory.messages:
             if (
                 memory.content not in self.memory2importance
@@ -97,20 +95,17 @@ class Reflection(BaseMemoryManipulator):
                     memory.content
                 )
 
-        for score in self.memory2importance.values():
-            accumulated_importance += score
-
+        accumulated_importance = sum(self.memory2importance.values())
         self.accumulated_importance = accumulated_importance
 
         return accumulated_importance
 
     def should_reflect(self):
-        if self.get_accumulated_importance() >= self.importance_threshold:
-            # double the importance_threshold
-            self.importance_threshold *= 2
-            return True
-        else:
+        if self.get_accumulated_importance() < self.importance_threshold:
             return False
+        # double the importance_threshold
+        self.importance_threshold *= 2
+        return True
 
     def get_questions(self, texts):
         prompt = "\n".join(texts) + "\n" + QUESTION_PROMPT
@@ -121,9 +116,9 @@ class Reflection(BaseMemoryManipulator):
         return questions
 
     def get_insights(self, statements):
-        prompt = ""
-        for i, st in enumerate(statements):
-            prompt += str(i + 1) + ". " + st + "\n"
+        prompt = "".join(
+            f"{str(i + 1)}. {st}" + "\n" for i, st in enumerate(statements)
+        )
         prompt += INSIGHT_PROMPT
         result = self.agent.llm.generate_response(prompt)
         result = result.content
@@ -291,19 +286,14 @@ class Reflection(BaseMemoryManipulator):
             top_k_indices,
             key=lambda x: self.memory2time[memory_bank[x].content]["create_time"],
         )
-        query_results = []
-        for i in top_k_indices:
-            query_result = memory_bank[i].content
-            query_results.append(query_result)
-
-        return query_results
+        return [memory_bank[i].content for i in top_k_indices]
 
     def get_memories_of_interest_oneself(self):
-        memories_of_interest = []
-        for memory in self.memory.messages[-100:]:
-            if memory.sender == self.agent.name:
-                memories_of_interest.append(memory)
-        return memories_of_interest
+        return [
+            memory
+            for memory in self.memory.messages[-100:]
+            if memory.sender == self.agent.name
+        ]
 
     def reflect(self):
         """
@@ -315,7 +305,7 @@ class Reflection(BaseMemoryManipulator):
             questions, len(questions) * 10, memories_of_interest
         )
         insights = self.get_insights(statements)
-        logger.info(self.agent.name + f" Insights: {insights}")
+        logger.info(f"{self.agent.name} Insights: {insights}")
         for insight in insights:
             # convert insight to messages
             # TODO currently only oneself can see its own reflection
@@ -323,8 +313,7 @@ class Reflection(BaseMemoryManipulator):
                 content=insight, sender=self.agent.name, receiver={self.agent.name}
             )
             self.memory.add_message([insight_message])
-        reflection = "\n".join(insights)
-        return reflection
+        return "\n".join(insights)
 
     def reset(self) -> None:
         self.reflection = ""

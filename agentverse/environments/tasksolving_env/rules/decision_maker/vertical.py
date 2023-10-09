@@ -45,10 +45,11 @@ class VerticalDecisionMaker(BaseDecisionMaker):
             Fore.YELLOW,
         )
 
-        nonempty_reviews = []
-        for review in reviews:
-            if not review.is_agree and review.content != "":
-                nonempty_reviews.append(review)
+        nonempty_reviews = [
+            review
+            for review in reviews
+            if not review.is_agree and review.content != ""
+        ]
         agents[0].add_message_to_memory(nonempty_reviews)
         result = agents[0].step(previous_plan, advice, task_description)
         agents[0].add_message_to_memory([result])

@@ -45,7 +45,7 @@ class ManagerAgent(BaseAgent):
 
         logger.debug(f"Prompt:\n{prompt}", "Manager", Fore.CYAN)
         parsed_response = None
-        for i in range(self.max_retry):
+        for _ in range(self.max_retry):
             try:
                 # LLM Manager
                 # response = self.llm.generate_response(prompt)
@@ -66,7 +66,6 @@ class ManagerAgent(BaseAgent):
             except Exception as e:
                 logger.error(e)
                 logger.warn("Retrying...")
-                continue
         return candidate_critic_opinion
 
     async def astep(self, env_description: str = "") -> Message:

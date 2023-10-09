@@ -27,7 +27,7 @@ ESCAPE_CHARACTERS = {
 
 
 def remove_at_index(text: str, start: int, count: int) -> str:
-    return text[0:start] + text[start + count :]
+    return text[:start] + text[start + count :]
 
 
 def is_control_character(char: str) -> bool:
@@ -46,13 +46,7 @@ def is_single_quote(char: str) -> bool:
     """Test whether the given character is a single quote character.
     Also tests for special variants of single quotes.
     """
-    return char in (
-        "'",  # U+0027
-        "‘",  # U+2018
-        "’",  # U+2019
-        "`",  # U+0060
-        "´",  # U+00B4
-    )
+    return char in {"'", "‘", "’", "`", "´"}
 
 
 def is_double_quote(char: str) -> bool:
@@ -142,7 +136,7 @@ def at_end_of_block_comment(text: str, i: int) -> bool:
 
 class JsonRepairError(Exception):
     def __init__(self, message: str, position: int):
-        super(JsonRepairError, self).__init__(message + f" at position {position}")
+        super(JsonRepairError, self).__init__(f"{message} at position {position}")
         self.position = position
 
 
@@ -250,11 +244,7 @@ class JsonRepair:
             if not normal and not special:
                 break
 
-            if special:
-                whitespace += " "  # repair special whitespace
-            else:
-                whitespace += char
-
+            whitespace += " " if special else char
             self.inc()
 
         if whitespace:
@@ -302,89 +292,87 @@ class JsonRepair:
 
     def parse_object(self) -> bool:
         """Parse an object like '{"key": "value"}'"""
-        if not self.is_end_of_document() and self.char() == "{":
-            self.output += "{"
-            self.inc()
-            self.parse_whitespace_and_skip_comments()
+        if self.is_end_of_document() or self.char() != "{":
+            return False
+        self.output += "{"
+        self.inc()
+        self.parse_whitespace_and_skip_comments()
 
-            initial = True
-            while not self.is_end_of_document() and self.char() != "}":
-                if not initial:
-                    processed_comma = self.parse_character(",")
-                    if not processed_comma:
-                        # repair missing comma
-                        self.output = insert_before_last_whitespace(self.output, ",")
-                    self.parse_whitespace_and_skip_comments()
-                else:
-                    processed_comma = True
-                    initial = False
-
-                processed_key = self.parse_string() or self.parse_unquoted_string()
-                if not processed_key:
-                    if self.is_end_of_document() or self.char() in "{}[]":
-                        # repair trailing comma
-                        self.output = strip_last_occurrence(self.output, ",")
-                        break
-                    raise self.object_key_expected()
-
+        initial = True
+        while not self.is_end_of_document() and self.char() != "}":
+            if not initial:
+                processed_comma = self.parse_character(",")
+                if not processed_comma:
+                    # repair missing comma
+                    self.output = insert_before_last_whitespace(self.output, ",")
                 self.parse_whitespace_and_skip_comments()
-                processed_colon = self.parse_character(":")
-                if not processed_colon:
-                    if is_start_of_value(self.char()):
-                        # repair missing colon
-                        self.output = insert_before_last_whitespace(self.output, ":")
-                    else:
-                        raise self.colon_expected()
-                processed_value = self.parse_value()
-                if not processed_value:
-                    if processed_colon:
-                        raise self.object_value_expected()
-                    raise self.colon_expected()
-
-            if not self.is_end_of_document() and self.char() == "}":
-                self.output += "}"
-                self.inc()
             else:
-                # repair missing end bracket
-                self.output = insert_before_last_whitespace(self.output, "}")
+                processed_comma = True
+                initial = False
 
-            return True
-
-        return False
-
-    def parse_array(self) -> bool:
-        """Parse an array like '["item1", "item2", ...]'"""
-        if not self.is_end_of_document() and self.char() == "[":
-            self.output += "["
-            self.inc()
-            self.parse_whitespace_and_skip_comments()
-
-            initial = True
-            while not self.is_end_of_document() and self.char() != "]":
-                if not initial:
-                    processed_comma = self.parse_character(",")
-                    if not processed_comma:
-                        # repair missing comma
-                        self.output = insert_before_last_whitespace(self.output, ",")
-                else:
-                    initial = False
-
-                processed_value = self.parse_value()
-                if not processed_value:
+            processed_key = self.parse_string() or self.parse_unquoted_string()
+            if not processed_key:
+                if self.is_end_of_document() or self.char() in "{}[]":
                     # repair trailing comma
                     self.output = strip_last_occurrence(self.output, ",")
                     break
+                raise self.object_key_expected()
 
-            if not self.is_end_of_document() and self.char() == "]":
-                self.output += "]"
-                self.inc()
+            self.parse_whitespace_and_skip_comments()
+            processed_colon = self.parse_character(":")
+            if not processed_colon:
+                if is_start_of_value(self.char()):
+                    # repair missing colon
+                    self.output = insert_before_last_whitespace(self.output, ":")
+                else:
+                    raise self.colon_expected()
+            processed_value = self.parse_value()
+            if not processed_value:
+                if processed_colon:
+                    raise self.object_value_expected()
+                raise self.colon_expected()
+
+        if not self.is_end_of_document() and self.char() == "}":
+            self.output += "}"
+            self.inc()
+        else:
+            # repair missing end bracket
+            self.output = insert_before_last_whitespace(self.output, "}")
+
+        return True
+
+    def parse_array(self) -> bool:
+        """Parse an array like '["item1", "item2", ...]'"""
+        if self.is_end_of_document() or self.char() != "[":
+            return False
+        self.output += "["
+        self.inc()
+        self.parse_whitespace_and_skip_comments()
+
+        initial = True
+        while not self.is_end_of_document() and self.char() != "]":
+            if not initial:
+                processed_comma = self.parse_character(",")
+                if not processed_comma:
+                    # repair missing comma
+                    self.output = insert_before_last_whitespace(self.output, ",")
             else:
-                # repair missing closing array bracket
-                self.output = insert_before_last_whitespace(self.output, "]")
+                initial = False
 
-            return True
+            processed_value = self.parse_value()
+            if not processed_value:
+                # repair trailing comma
+                self.output = strip_last_occurrence(self.output, ",")
+                break
 
-        return False
+        if not self.is_end_of_document() and self.char() == "]":
+            self.output += "]"
+            self.inc()
+        else:
+            # repair missing closing array bracket
+            self.output = insert_before_last_whitespace(self.output, "]")
+
+        return True
 
     def parse_newline_delimited_json(self):
         """Parse and repair Newline Delimited JSON (NDJSON):
@@ -437,22 +425,20 @@ class JsonRepair:
                 while not self.is_end_of_document() and not is_end_quote(self.char()):
                     if self.char() == "\\":
                         char = self.char(pos=+1)
-                        escape_char = ESCAPE_CHARACTERS.get(char)
-                        if escape_char:
+                        if escape_char := ESCAPE_CHARACTERS.get(char):
                             self.output += self.text[self.i : self.i + 2]
                             self.inc(by=2)
                         elif char == "u":
                             if (
-                                not self.is_end_of_document(pos=+5)
-                                and is_hex(self.char(pos=+2))
-                                and is_hex(self.char(pos=+3))
-                                and is_hex(self.char(pos=+4))
-                                and is_hex(self.char(pos=+5))
+                                self.is_end_of_document(pos=+5)
+                                or not is_hex(self.char(pos=+2))
+                                or not is_hex(self.char(pos=+3))
+                                or not is_hex(self.char(pos=+4))
+                                or not is_hex(self.char(pos=+5))
                             ):
-                                self.output += self.text[self.i : self.i + 6]
-                                self.inc(by=6)
-                            else:
                                 raise self.invalid_unicode_character(self.i)
+                            self.output += self.text[self.i : self.i + 6]
+                            self.inc(by=6)
                         else:
                             # repair invalid escape character: remove it
                             self.output += char
@@ -463,22 +449,16 @@ class JsonRepair:
                         if char == '"' and self.char(pos=-1) != "\\":
                             # repair unescaped double quote
                             self.output += "\\" + char
-                            self.inc()
                         elif is_control_character(char):
                             # unescaped control character
                             self.output += CONTROL_CHARACTERS[char]
-                            self.inc()
-                        else:
-                            if not is_valid_string_character(char):
-                                raise self.invalid_character(char)
+                        elif is_valid_string_character(char):
                             self.output += char
-                            self.inc()
-
+                        else:
+                            raise self.invalid_character(char)
+                        self.inc()
                     if skip_escape_chars:
                         processed = self.skip_escape_character()
-                        if processed:
-                            pass  # repair: skipped escape character (nothing to do)
-
                 if not self.is_end_of_document() and is_quote(self.char()):
                     if self.char() != '"':
                         pass  # TODO:? repair non-normalized quote
@@ -521,21 +501,20 @@ class JsonRepair:
             start = self.i
             if self.char() == "-":
                 self.inc()
-                err = self.expect_digit(start)
-                if err:
+                if err := self.expect_digit(start):
                     raise err
 
-            if not self.is_end_of_document() and self.char() == "0":
-                self.inc()
-            elif not self.is_end_of_document() and self.char() in "123456789":
-                self.inc()
-                while not self.is_end_of_document() and self.char().isdigit():
+            if not self.is_end_of_document():
+                if self.char() == "0":
                     self.inc()
+                elif self.char() in "123456789":
+                    self.inc()
+                    while not self.is_end_of_document() and self.char().isdigit():
+                        self.inc()
 
             if not self.is_end_of_document() and self.char() == ".":
                 self.inc()
-                err = self.expect_digit(start)
-                if err:
+                if err := self.expect_digit(start):
                     raise err
                 while not self.is_end_of_document() and self.char().isdigit():
                     self.inc()
@@ -544,8 +523,7 @@ class JsonRepair:
                 self.inc()
                 if not self.is_end_of_document() and self.char() in "+-":
                     self.inc()
-                err = self.expect_digit(start)
-                if err:
+                if err := self.expect_digit(start):
                     raise err
                 while not self.is_end_of_document() and self.char().isdigit():
                     self.inc()
@@ -626,11 +604,11 @@ class JsonRepair:
             )
 
     def invalid_character(self, char: str) -> JsonRepairError:
-        return JsonRepairError("Invalid character " + json.dumps(char), self.i)
+        return JsonRepairError(f"Invalid character {json.dumps(char)}", self.i)
 
     def unexpected_character(self) -> JsonRepairError:
         return JsonRepairError(
-            "Unexpected character " + json.dumps(self.text[self.i]), self.i
+            f"Unexpected character {json.dumps(self.text[self.i])}", self.i
         )
 
     def unexpected_end(self) -> JsonRepairError:

@@ -153,13 +153,8 @@ class Logger(metaclass=Singleton):
         level=logging.INFO,
     ):
         if isinstance(message, list):
-            if len(message) > 0:
-                message = "\n".join([str(m) for m in message])
-            else:
-                message = ""
-        self.logger.log(
-            level, message, extra={"title": str(title), "color": str(title_color)}
-        )
+            message = "\n".join([str(m) for m in message]) if message != "" else ""
+        self.logger.log(level, message, extra={"title": title, "color": title_color})
 
     def set_level(self, level):
         self.logger.setLevel(level)
@@ -224,7 +219,7 @@ class TypingConsoleHandler(logging.StreamHandler):
         msg = self.format(record)
         try:
             words = re.split(r"(\s+)", msg)
-            for i, word in enumerate(words):
+            for word in words:
                 print(word, end="", flush=True)
                 # if i < len(words) - 1:
                 #     print(" ", end="", flush=True)

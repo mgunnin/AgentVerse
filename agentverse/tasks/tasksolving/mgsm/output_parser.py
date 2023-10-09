@@ -50,8 +50,7 @@ class MGSMEvaluatorParser(OutputParser):
         try:
             # find score and advice
             score_num = [
-                int(pattern.findall(cleaned_output)[0])
-                for i, pattern in enumerate(patterns)
+                int(pattern.findall(cleaned_output)[0]) for pattern in patterns
             ][0]
             if score_num == 0:
                 score = False
@@ -61,7 +60,7 @@ class MGSMEvaluatorParser(OutputParser):
                 raise ValueError("Bad score!")
             pat = re.compile(r"(?:\d.\s*)?Response:\s*(.+)", re.DOTALL)
             advice = pat.findall(cleaned_output)[0]
-            # logger.info("Evaluator give the following advice:\n" + advice)
+                # logger.info("Evaluator give the following advice:\n" + advice)
         except (IndexError, ValueError):
             # logger.error("Bad response from evaluator!")
             raise OutputParserError(text)
@@ -90,29 +89,6 @@ class MGSMCriticParser(OutputParser):
     def parse(self, output: LLMResult) -> AgentCriticism:
         text = output.content
         return AgentCriticism(False, text)
-        # text = re.sub(r"\n+", "\n", text.strip())
-        # checks = text.split("\n")
-        # if not text.startswith("Thought:"):
-        #     raise OutputParserError(text)
-        # if not (checks[0].startswith("Action:")):
-        #     raise OutputParserError(text)
-        # if checks[0].strip(". ") == "Action: Agree":
-        #     return AgentCriticism(True, "")
-        if "[Correct]" in text:
-            return AgentCriticism(True, "")
-        else:
-            # pattern = re.compile(r"Action Input: ([\S\n ]+)")
-            # try:
-            # criticism = pattern.findall(text)[0].strip()
-            # criticism = (
-            #     re.findall(r"Output:\S?(.+)", text)[0].replace("[Wrong]", "")
-            # ).strip()
-            criticism = text.replace("[Wrong]", "").strip()
-            # except IndexError:
-            # logger.error("Bad response from critic!")
-            # raise OutputParserError(text)
-            # criticism = "I think the solution is not correct. Please think carefully and correct it."
-            return AgentCriticism(False, criticism)
         # else:
         #     raise OutputParserError(text)
 
@@ -140,27 +116,19 @@ class MGSMCriticAgreeParser(OutputParser):
     def parse(self, output: LLMResult) -> AgentCriticism:
         text = output.content
         text = re.sub(r"\n+", "\n", text.strip())
-        # checks = text.split("\n")
-        # if not text.startswith("Thought:"):
-        #     raise OutputParserError(text)
-        # if not (checks[0].startswith("Action:")):
-        #     raise OutputParserError(text)
-        # if checks[0].strip(". ") == "Action: Agree":
-        #     return AgentCriticism(True, "")
         if "[Agree]" in text:
             return AgentCriticism(True, "")
-        else:
-            # pattern = re.compile(r"Action Input: ([\S\n ]+)")
-            # try:
-            # criticism = pattern.findall(text)[0].strip()
-            # criticism = (
-            #     re.findall(r"Output:\S?(.+)", text)[0].replace("[Wrong]", "")
-            # ).strip()
-            criticism = text.replace("[Disagree]", "").strip()
-            # except IndexError:
-            # logger.error("Bad response from critic!")
-            # raise OutputParserError(text)
-            # criticism = "I think the solution is not correct. Please think carefully and correct it."
-            return AgentCriticism(False, criticism)
+        # pattern = re.compile(r"Action Input: ([\S\n ]+)")
+        # try:
+        # criticism = pattern.findall(text)[0].strip()
+        # criticism = (
+        #     re.findall(r"Output:\S?(.+)", text)[0].replace("[Wrong]", "")
+        # ).strip()
+        criticism = text.replace("[Disagree]", "").strip()
+        # except IndexError:
+        # logger.error("Bad response from critic!")
+        # raise OutputParserError(text)
+        # criticism = "I think the solution is not correct. Please think carefully and correct it."
+        return AgentCriticism(False, criticism)
         # else:
         #     raise OutputParserError(text)

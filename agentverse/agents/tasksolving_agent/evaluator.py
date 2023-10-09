@@ -35,7 +35,7 @@ class EvaluatorAgent(BaseAgent):
         )
         history = self.memory.to_messages(self.name)
         parsed_response = None
-        for i in range(self.max_retry):
+        for _ in range(self.max_retry):
             try:
                 response = self.llm.generate_response(
                     prepend_prompt, history, append_prompt
@@ -47,17 +47,14 @@ class EvaluatorAgent(BaseAgent):
             except Exception as e:
                 logger.error(e)
                 logger.warn("Retrying...")
-                continue
-
         if parsed_response is None:
             logger.error(f"{self.name} failed to generate valid response.")
-        message = EvaluatorMessage(
+        return EvaluatorMessage(
             sender=self.name,
             sender_agent=self,
             score=parsed_response[0] if parsed_response is not None else 0,
             advice=parsed_response[1] if parsed_response is not None else "",
         )
-        return message
         # return parsed_response
 
     async def astep(self, solution: str) -> EvaluatorMessage:

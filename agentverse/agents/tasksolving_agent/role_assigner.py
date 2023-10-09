@@ -30,7 +30,7 @@ class RoleAssignerAgent(BaseAgent):
         )
         history = self.memory.to_messages(self.name)
         parsed_response = None
-        for i in range(self.max_retry):
+        for _ in range(self.max_retry):
             try:
                 response = self.llm.generate_response(
                     prepend_prompt, history, append_prompt
@@ -48,15 +48,12 @@ class RoleAssignerAgent(BaseAgent):
             except Exception as e:
                 logger.error(e)
                 logger.warn("Retrying...")
-                continue
-
         if parsed_response is None:
             logger.error(f"{self.name} failed to generate valid response.")
 
-        message = RoleAssignerMessage(
+        return RoleAssignerMessage(
             content=parsed_response, sender=self.name, sender_agent=self
         )
-        return message
 
     async def astep(self, env_description: str = "") -> RoleAssignerMessage:
         """Asynchronous version of step"""

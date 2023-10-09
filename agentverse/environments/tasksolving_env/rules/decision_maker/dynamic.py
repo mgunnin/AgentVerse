@@ -36,8 +36,8 @@ class DynamicDecisionMaker(BaseDecisionMaker):
     ) -> List[str]:
         # Speak simultaneously
         # Manger select the optimial one as the current spoken sentence
-        reviews = list()
-        for i in range(len(agents)):
+        reviews = []
+        for agent_ in agents:
             review = await asyncio.gather(
                 *[
                     agent.astep(previous_plan, advice, task_description)
@@ -70,10 +70,11 @@ class DynamicDecisionMaker(BaseDecisionMaker):
         )
         """
 
-        nonempty_reviews = []
-        for review in reviews:
-            if not review.is_agree and review.content != "":
-                nonempty_reviews.append(review)
+        nonempty_reviews = [
+            review
+            for review in reviews
+            if not review.is_agree and review.content != ""
+        ]
         agents[0].add_message_to_memory(nonempty_reviews)
 
         result = agents[0].step(previous_plan, advice, task_description)

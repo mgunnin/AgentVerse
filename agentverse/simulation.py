@@ -51,8 +51,7 @@ class Simulation:
 
     def next(self, *args, **kwargs):
         """Run the environment for one step and return the return message."""
-        return_message = asyncio.run(self.environment.step(*args, **kwargs))
-        return return_message
+        return asyncio.run(self.environment.step(*args, **kwargs))
 
     def update_state(self, *args, **kwargs):
         """Run the environment for one step and return the return message."""
