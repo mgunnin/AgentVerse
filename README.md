@@ -64,7 +64,7 @@ Applications: software development system, consulting system, etc.
 
 - [2023/10/5] Re-factor our codebase to enable the deployment of both simulation and task-solving framework! We have placed the code for Minecraft example in the paper at the [`minecraft`](https://github.com/OpenBMB/AgentVerse/tree/minecraft) branch. Our tool-using example will soon be updated to the `main` branch. Stay tuned!
 
-- [2023/8/22] We're excited to share our paper [AgentVerse: Facilitating Multi-Agent Collaboration and Exploring Emergent Behaviors in Agents](https://arxiv.org/abs/2308.10848) that  illistrate the task-solving framework 
+- [2023/8/22] We're excited to share our paper [AgentVerse: Facilitating Multi-Agent Collaboration and Exploring Emergent Behaviors in Agents](https://arxiv.org/abs/2308.10848) that  illustrate the task-solving framework 
 in detail of AgentVerse.
 
 - [2023/6/5] We are thrilled to present an array of [demos](#-simple-demo-video), including [NLP Classroom](#nlp-classroom), [Prisoner Dilemma](#prisoner-dilemma), [Software Design](#software-design), [Database Administrator](#database-administrator-dba), and a simple [H5 Pokemon Game](#pokemon) that enables the interaction with the characters in Pokemon! Try out these demos and have fun!
@@ -261,7 +261,7 @@ You need to export your OpenAI API key as follows：
 export OPENAI_API_KEY="your_api_key_here"
 ```
 
-If you want use Azure OpenAI services, pleas export your Azure OpenAI key and OpenAI API base as follows：
+If you want use Azure OpenAI services, please export your Azure OpenAI key and OpenAI API base as follows：
 ```bash
 export AZURE_OPENAI_API_KEY="your_api_key_here"
 export AZURE_OPENAI_API_BASE="your_api_base_here"
